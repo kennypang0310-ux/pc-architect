@@ -6,6 +6,7 @@ DESIGN: Cyberpunk Tech Noir
 - Orbitron for headings, Inter for body, JetBrains Mono for technical text
 */
 
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,8 +21,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Cpu, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { getLoginUrl } from "@/const";
 
 export default function Home() {
+  // The userAuth hooks provides authentication state
+  // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
+  let { user, loading, error, isAuthenticated, logout } = useAuth();
+
   const [currency, setCurrency] = useState("USD ($)");
   const [region, setRegion] = useState("United States");
   const [usage, setUsage] = useState("Gaming (High FPS)");
@@ -92,21 +98,37 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="hidden sm:inline-flex text-muted-foreground hover:text-foreground"
-                onClick={() => toast.info("Feature coming soon")}
-              >
-                Sign In
-              </Button>
-              <Button 
-                size="sm"
-                className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity neon-glow"
-                onClick={() => toast.info("Feature coming soon")}
-              >
-                Sign Up
-              </Button>
+              {isAuthenticated ? (
+                <>
+                  <span className="text-sm text-muted-foreground">{user?.name}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground"
+                    onClick={() => logout()}
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="hidden sm:inline-flex text-muted-foreground hover:text-foreground"
+                    onClick={() => window.location.href = getLoginUrl()}
+                  >
+                    Sign In
+                  </Button>
+                  <Button 
+                    size="sm"
+                    className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity neon-glow"
+                    onClick={() => window.location.href = getLoginUrl()}
+                  >
+                    Sign Up
+                  </Button>
+                </>
+              )}
             </div>
           </nav>
         </div>

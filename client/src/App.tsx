@@ -7,8 +7,8 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Feedback from "./pages/Feedback";
 
-
 function Router() {
+  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"\x2F"} component={Home} />
