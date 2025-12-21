@@ -15,6 +15,13 @@
       "when": 1766292930261,
       "tag": "0001_previous_oracle",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1766293635674,
+      "tag": "0002_conscious_shard",
+      "breakpoints": true
     }
   ]
 }

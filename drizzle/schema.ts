@@ -55,3 +55,17 @@ export const feedbacks = mysqlTable("feedbacks", {
 
 export type Feedback = typeof feedbacks.$inferSelect;
 export type InsertFeedback = typeof feedbacks.$inferInsert;
+
+/**
+ * Feedback reactions (likes/dislikes) table
+ */
+export const feedbackReactions = mysqlTable("feedbackReactions", {
+  id: int("id").autoincrement().primaryKey(),
+  feedbackId: int("feedbackId").notNull(),
+  userId: int("userId").notNull(),
+  type: mysqlEnum("type", ["like", "dislike"]).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FeedbackReaction = typeof feedbackReactions.$inferSelect;
+export type InsertFeedbackReaction = typeof feedbackReactions.$inferInsert;

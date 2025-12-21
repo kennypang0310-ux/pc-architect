@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createFeedback, getAllFeedbacks, getFeedbacksByUserId, updateFeedbackAnalysis } from "./db";
+import { createFeedback, getAllFeedbacks, getFeedbacksByUserId, updateFeedbackAnalysis, addFeedbackReaction, removeFeedbackReaction, getFeedbackReactionCounts, getUserReaction } from "./db";
 import { invokeLLM } from "./_core/llm";
 
 async function analyzeFeedbackWithAI(feedbackId: number, message: string, category: string) {
@@ -98,7 +98,6 @@ export const appRouter = router({
           throw new Error("Failed to create feedback");
         }
 
-        // Analyze feedback with AI in the background
         analyzeFeedbackWithAI(feedback.id, input.message, input.category).catch(err =>
           console.error("[AI Analysis] Failed to analyze feedback:", err)
         );
@@ -126,6 +125,41 @@ export const appRouter = router({
       )
       .query(async ({ ctx, input }) => {
         return await getFeedbacksByUserId(ctx.user.id, input.limit, input.offset);
+      }),
+
+    react: protectedProcedure
+      .input(
+        z.object({
+          feedbackId: z.number().int(),
+          type: z.enum(["like", "dislike"]),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const success = await addFeedbackReaction(input.feedbackId, ctx.user.id, input.type);
+        if (!success) throw new Error("Failed to add reaction");
+        const counts = await getFeedbackReactionCounts(input.feedbackId);
+        return counts;
+      }),
+
+    unreact: protectedProcedure
+      .input(z.object({ feedbackId: z.number().int() }))
+      .mutation(async ({ ctx, input }) => {
+        const success = await removeFeedbackReaction(input.feedbackId, ctx.user.id);
+        if (!success) throw new Error("Failed to remove reaction");
+        const counts = await getFeedbackReactionCounts(input.feedbackId);
+        return counts;
+      }),
+
+    getReactionCounts: publicProcedure
+      .input(z.object({ feedbackId: z.number().int() }))
+      .query(async ({ input }) => {
+        return await getFeedbackReactionCounts(input.feedbackId);
+      }),
+
+    getMyReaction: protectedProcedure
+      .input(z.object({ feedbackId: z.number().int() }))
+      .query(async ({ ctx, input }) => {
+        return await getUserReaction(input.feedbackId, ctx.user.id);
       }),
   }),
 });

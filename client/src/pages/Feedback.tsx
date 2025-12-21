@@ -12,12 +12,14 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Send, TrendingUp, Zap, Target } from "lucide-react";
+import { ArrowLeft, Send, TrendingUp, Zap, Target, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
+
+const OWNER_ID = 1; // Set this to the owner's user ID
 
 export default function Feedback() {
   const [, setLocation] = useLocation();
@@ -92,9 +94,64 @@ export default function Feedback() {
   };
 
   const FeedbackCard = ({ feedback }: { feedback: any }) => {
+    const isOwner = user?.id === OWNER_ID;
+    const isFeatureRequest = feedback.category === "feature";
     const frequencyScore = feedback.frequency ? parseFloat(feedback.frequency) : 0;
     const feasibilityScore = feedback.feasibility ? parseFloat(feedback.feasibility) : 0;
     const impactScore = feedback.impact ? parseFloat(feedback.impact) : 0;
+
+    // Fetch reaction counts
+    const { data: reactionCounts = { likes: 0, dislikes: 0 } } = trpc.feedback.getReactionCounts.useQuery({
+      feedbackId: feedback.id,
+    });
+
+    // Fetch user's reaction if authenticated
+    const { data: userReaction = null } = trpc.feedback.getMyReaction.useQuery(
+      { feedbackId: feedback.id },
+      { enabled: isAuthenticated }
+    );
+
+    // React mutation
+    const reactMutation = trpc.feedback.react.useMutation({
+      onSuccess: () => {
+        utils.feedback.getReactionCounts.invalidate({ feedbackId: feedback.id });
+        utils.feedback.getMyReaction.invalidate({ feedbackId: feedback.id });
+      },
+    });
+
+    // Unreact mutation
+    const unreactMutation = trpc.feedback.unreact.useMutation({
+      onSuccess: () => {
+        utils.feedback.getReactionCounts.invalidate({ feedbackId: feedback.id });
+        utils.feedback.getMyReaction.invalidate({ feedbackId: feedback.id });
+      },
+    });
+
+    const handleLike = async () => {
+      if (!isAuthenticated) {
+        window.location.href = getLoginUrl();
+        return;
+      }
+
+      if (userReaction === "like") {
+        await unreactMutation.mutateAsync({ feedbackId: feedback.id });
+      } else {
+        await reactMutation.mutateAsync({ feedbackId: feedback.id, type: "like" });
+      }
+    };
+
+    const handleDislike = async () => {
+      if (!isAuthenticated) {
+        window.location.href = getLoginUrl();
+        return;
+      }
+
+      if (userReaction === "dislike") {
+        await unreactMutation.mutateAsync({ feedbackId: feedback.id });
+      } else {
+        await reactMutation.mutateAsync({ feedbackId: feedback.id, type: "dislike" });
+      }
+    };
 
     return (
       <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
@@ -112,7 +169,32 @@ export default function Feedback() {
         <CardContent className="space-y-4">
           <p className="text-sm text-foreground">{feedback.message}</p>
 
-          {(frequencyScore > 0 || feasibilityScore > 0 || impactScore > 0) && (
+          {/* Like/Dislike Buttons - Visible to all users */}
+          <div className="flex items-center gap-2 pt-4 border-t border-primary/10">
+            <Button
+              size="sm"
+              variant={userReaction === "like" ? "default" : "outline"}
+              onClick={handleLike}
+              disabled={reactMutation.isPending || unreactMutation.isPending}
+              className="flex items-center gap-2"
+            >
+              <ThumbsUp className="w-4 h-4" />
+              {reactionCounts.likes}
+            </Button>
+            <Button
+              size="sm"
+              variant={userReaction === "dislike" ? "default" : "outline"}
+              onClick={handleDislike}
+              disabled={reactMutation.isPending || unreactMutation.isPending}
+              className="flex items-center gap-2"
+            >
+              <ThumbsDown className="w-4 h-4" />
+              {reactionCounts.dislikes}
+            </Button>
+          </div>
+
+          {/* AI Analysis Scores - Only visible to owner and only for feature requests */}
+          {isOwner && isFeatureRequest && (frequencyScore > 0 || feasibilityScore > 0 || impactScore > 0) && (
             <div className="grid grid-cols-3 gap-3 pt-4 border-t border-primary/10">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -389,7 +471,7 @@ export default function Feedback() {
       <footer className="relative z-10 border-t border-primary/20 backdrop-blur-sm bg-background/50 py-8 mt-16">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
-            Your feedback helps us improve PC Architect. AI analysis scores show frequency, feasibility, and impact.
+            Like or dislike feedback to help prioritize improvements. Feature requests are analyzed for frequency, feasibility, and impact.
           </p>
         </div>
       </footer>
