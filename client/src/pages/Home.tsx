@@ -86,6 +86,9 @@ export default function Home() {
               <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Get Pro
               </a>
+              <a href="/feedback" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Feedback
+              </a>
             </div>
 
             <div className="flex items-center gap-3">
@@ -279,11 +282,16 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-primary/20 backdrop-blur-sm bg-background/50 py-8 mt-16">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-sm text-muted-foreground mb-2">
-            Powered by <span className="text-primary font-semibold">Base44 AI</span>
-          </p>
-          <p className="text-xs text-muted-foreground">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+            <p className="text-sm text-muted-foreground">
+              Powered by <span className="text-primary font-semibold">Base44 AI</span>
+            </p>
+            <a href="/feedback" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              Share Feedback
+            </a>
+          </div>
+          <p className="text-xs text-muted-foreground text-center">
             Prices are estimates based on current market data. Actual availability may vary.
           </p>
         </div>
