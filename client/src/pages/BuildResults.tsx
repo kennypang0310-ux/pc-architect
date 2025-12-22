@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Download, Share2, Save, AlertCircle } from "lucide-react";
+import { ArrowLeft, Share2, Save, AlertCircle, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -346,6 +346,39 @@ export default function BuildResults() {
     });
   };
 
+  const getShoppingLink = (componentName: string): string => {
+    const regionShoppingLinks: Record<string, string> = {
+      "United States": "https://www.amazon.com/s?k=",
+      "United Kingdom": "https://www.amazon.co.uk/s?k=",
+      "Canada": "https://www.amazon.ca/s?k=",
+      "Germany": "https://www.amazon.de/s?k=",
+      "France": "https://www.amazon.fr/s?k=",
+      "Spain": "https://www.amazon.es/s?k=",
+      "Italy": "https://www.amazon.it/s?k=",
+      "Netherlands": "https://www.bol.com/nl/nl/s/?searchtext=",
+      "Belgium": "https://www.bol.com/be/nl/s/?searchtext=",
+      "Switzerland": "https://www.digitec.ch/en/search?q=",
+      "Sweden": "https://www.amazon.se/s?k=",
+      "Norway": "https://www.amazon.no/s?k=",
+      "Denmark": "https://www.amazon.dk/s?k=",
+      "Japan": "https://www.amazon.co.jp/s?k=",
+      "South Korea": "https://www.coupang.com/np/search?q=",
+      "China": "https://www.taobao.com/search?q=",
+      "India": "https://www.amazon.in/s?k=",
+      "Australia": "https://www.amazon.com.au/s?k=",
+      "New Zealand": "https://www.amazon.com.au/s?k=",
+      "Brazil": "https://www.amazon.com.br/s?k=",
+      "Mexico": "https://www.amazon.com.mx/s?k=",
+      "Singapore": "https://www.lazada.sg/catalog/?q=",
+      "Hong Kong": "https://www.amazon.hk/s?k=",
+      "Taiwan": "https://www.momo.com.tw/search/searchKeyword.jsp?keyword=",
+      "Thailand": "https://www.lazada.co.th/catalog/?q=",
+    };
+
+    const baseUrl = buildParams ? regionShoppingLinks[buildParams.region] || regionShoppingLinks["United States"] : regionShoppingLinks["United States"];
+    return baseUrl + encodeURIComponent(componentName);
+  };
+
   const getCurrencySymbol = (currency: string) => {
     const symbols: Record<string, string> = {
       "USD ($)": "$",
@@ -499,7 +532,7 @@ export default function BuildResults() {
               </Card>
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <Button
                   onClick={handleSaveBuild}
                   className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-all"
@@ -515,17 +548,10 @@ export default function BuildResults() {
                   <Share2 className="w-4 h-4 mr-2" />
                   Share Build
                 </Button>
-                <Button
-                  variant="outline"
-                  className="border-primary/30 hover:border-primary/50"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export PDF
-                </Button>
               </div>
 
               {/* Components Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 {buildResult.components.map((component, idx) => (
                   <Card key={idx} className="border-primary/20 bg-card/50 backdrop-blur-sm">
                     <CardHeader>
@@ -543,21 +569,41 @@ export default function BuildResults() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground mb-4">{component.specs}</p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full border-primary/30 hover:border-primary/50"
-                        onClick={() => toast.info("Purchase link feature coming soon")}
+                      <a
+                        href={getShoppingLink(component.name)}
+                        target="_blank"
+                        rel="noopener noreferrer"
                       >
-                        View on Amazon
-                      </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full border-primary/30 hover:border-primary/50"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Shop Now
+                        </Button>
+                      </a>
                     </CardContent>
                   </Card>
                 ))}
               </div>
 
+              {/* Region/Currency Note */}
+              <Card className="border-primary/20 bg-primary/10 backdrop-blur-sm mb-6">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-primary" />
+                    Shopping Links Optimized for Your Region
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <p>The shopping links above are optimized for <span className="font-semibold text-foreground">{buildParams.region}</span> and use <span className="font-semibold text-foreground">{buildParams.currency}</span>.</p>
+                  <p>To get dedicated shopping pages for each component in your preferred region/currency, go back to the builder and change your region and currency settings.</p>
+                </CardContent>
+              </Card>
+
               {/* Info Box */}
-              <Card className="border-primary/20 bg-card/50 backdrop-blur-sm mt-8">
+              <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-primary" />
