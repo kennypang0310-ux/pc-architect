@@ -22,33 +22,109 @@ import { Cpu, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
+import { useLocation } from "wouter";
+
+const CURRENCIES = [
+  { value: "USD", label: "USD ($)", symbol: "$" },
+  { value: "EUR", label: "EUR (€)", symbol: "€" },
+  { value: "GBP", label: "GBP (£)", symbol: "£" },
+  { value: "JPY", label: "JPY (¥)", symbol: "¥" },
+  { value: "CAD", label: "CAD (C$)", symbol: "C$" },
+  { value: "AUD", label: "AUD (A$)", symbol: "A$" },
+  { value: "CHF", label: "CHF (CHF)", symbol: "CHF" },
+  { value: "CNY", label: "CNY (¥)", symbol: "¥" },
+  { value: "INR", label: "INR (₹)", symbol: "₹" },
+  { value: "BRL", label: "BRL (R$)", symbol: "R$" },
+  { value: "MXN", label: "MXN (Mex$)", symbol: "Mex$" },
+  { value: "SGD", label: "SGD (S$)", symbol: "S$" },
+  { value: "HKD", label: "HKD (HK$)", symbol: "HK$" },
+  { value: "NZD", label: "NZD (NZ$)", symbol: "NZ$" },
+  { value: "SEK", label: "SEK (kr)", symbol: "kr" },
+];
+
+const COUNTRIES = [
+  "United States",
+  "United Kingdom",
+  "Canada",
+  "Germany",
+  "France",
+  "Spain",
+  "Italy",
+  "Netherlands",
+  "Belgium",
+  "Switzerland",
+  "Sweden",
+  "Norway",
+  "Denmark",
+  "Japan",
+  "South Korea",
+  "China",
+  "India",
+  "Australia",
+  "New Zealand",
+  "Brazil",
+  "Mexico",
+  "Singapore",
+  "Hong Kong",
+  "Taiwan",
+  "Thailand",
+];
+
+const USAGE_OPTIONS = [
+  "Gaming (High FPS)",
+  "Gaming (4K Ultra)",
+  "Workstation (Editing/3D)",
+  "Office & Productivity",
+  "Streaming & Gaming",
+  "Programming & Dev",
+  "AI/Machine Learning",
+  "Video Production",
+  "Graphic Design",
+  "Budget Build",
+];
 
 export default function Home() {
   // The userAuth hooks provides authentication state
   // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
   let { user, loading, error, isAuthenticated, logout } = useAuth();
+  const [, setLocation] = useLocation();
 
   const [currency, setCurrency] = useState("USD ($)");
   const [region, setRegion] = useState("United States");
   const [usage, setUsage] = useState("Gaming (High FPS)");
   const [includePeripherals, setIncludePeripherals] = useState(false);
   const [budget, setBudget] = useState("2000");
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleGenerateBuild = () => {
+  const handleGenerateBuild = async () => {
     if (!budget || parseFloat(budget) <= 0) {
       toast.error("Please enter a valid budget");
       return;
     }
+
+    if (!isAuthenticated) {
+      window.location.href = getLoginUrl();
+      return;
+    }
     
-    toast.success("Generating your custom PC build...", {
+    setIsGenerating(true);
+    toast.loading("Generating your custom PC build...", {
       description: "Our AI is analyzing the market for the best components",
     });
     
-    // Simulate build generation
+    // Simulate build generation and navigate to results
     setTimeout(() => {
-      toast.info("Feature coming soon", {
-        description: "Build generation will be available in the next update",
-      });
+      setIsGenerating(false);
+      // Store build parameters in session/state for results page
+      const buildParams = {
+        currency,
+        region,
+        usage,
+        includePeripherals,
+        budget: parseFloat(budget),
+      };
+      sessionStorage.setItem("buildParams", JSON.stringify(buildParams));
+      setLocation("/build-results");
     }, 2000);
   };
 
@@ -192,10 +268,11 @@ export default function Home() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="USD ($)">USD ($)</SelectItem>
-                          <SelectItem value="EUR (€)">EUR (€)</SelectItem>
-                          <SelectItem value="GBP (£)">GBP (£)</SelectItem>
-                          <SelectItem value="JPY (¥)">JPY (¥)</SelectItem>
+                          {CURRENCIES.map((curr) => (
+                            <SelectItem key={curr.value} value={curr.label}>
+                              {curr.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -203,7 +280,7 @@ export default function Home() {
                     {/* Region */}
                     <div className="space-y-2">
                       <Label htmlFor="region" className="text-sm font-medium">
-                        Region
+                        Region / Country
                       </Label>
                       <Select value={region} onValueChange={setRegion}>
                         <SelectTrigger 
@@ -213,11 +290,11 @@ export default function Home() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="United States">United States</SelectItem>
-                          <SelectItem value="United Kingdom">United Kingdom</SelectItem>
-                          <SelectItem value="Canada">Canada</SelectItem>
-                          <SelectItem value="Germany">Germany</SelectItem>
-                          <SelectItem value="Japan">Japan</SelectItem>
+                          {COUNTRIES.map((country) => (
+                            <SelectItem key={country} value={country}>
+                              {country}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -235,11 +312,11 @@ export default function Home() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Gaming (High FPS)">Gaming (High FPS)</SelectItem>
-                          <SelectItem value="Workstation (Editing/3D)">Workstation (Editing/3D)</SelectItem>
-                          <SelectItem value="Office & Productivity">Office & Productivity</SelectItem>
-                          <SelectItem value="Streaming & Gaming">Streaming & Gaming</SelectItem>
-                          <SelectItem value="Programming & Dev">Programming & Dev</SelectItem>
+                          {USAGE_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -250,51 +327,53 @@ export default function Home() {
                     <Checkbox
                       id="peripherals"
                       checked={includePeripherals}
-                      onCheckedChange={(checked) => setIncludePeripherals(checked as boolean)}
-                      className="mt-0.5 border-primary/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                      onCheckedChange={(checked) => setIncludePeripherals(checked === true)}
+                      className="mt-1"
                     />
-                    <Label
-                      htmlFor="peripherals"
-                      className="text-sm font-normal leading-relaxed cursor-pointer"
-                    >
-                      Include Peripherals (Monitor, Keyboard, Mouse, Headset) in budget
-                    </Label>
+                    <div>
+                      <label 
+                        htmlFor="peripherals" 
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Include Peripherals (Monitor, Keyboard, Mouse, Headset) in budget
+                      </label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        If unchecked, budget is for PC components only
+                      </p>
+                    </div>
                   </div>
 
                   {/* Budget Input */}
-                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
-                    <div className="space-y-2">
-                      <Label htmlFor="budget" className="text-sm font-medium flex items-center gap-2">
-                        <span className="text-primary">💰</span>
-                        Maximum Budget
-                      </Label>
-                      <div className="relative">
-                        <span 
-                          className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-mono"
-                        >
-                          $
-                        </span>
-                        <Input
-                          id="budget"
-                          type="number"
-                          placeholder="2000"
-                          value={budget}
-                          onChange={(e) => setBudget(e.target.value)}
-                          className="pl-8 h-12 bg-background/50 border-primary/30 focus:border-primary hover:border-primary/50 transition-colors text-lg font-mono"
-                        />
-                      </div>
+                  <div className="space-y-2 mb-8">
+                    <Label htmlFor="budget" className="text-sm font-medium">
+                      Total Budget
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        {CURRENCIES.find(c => c.label === currency)?.symbol || "$"}
+                      </span>
+                      <Input
+                        id="budget"
+                        type="number"
+                        placeholder="2000"
+                        value={budget}
+                        onChange={(e) => setBudget(e.target.value)}
+                        className="pl-8 bg-background/50 border-primary/30 focus:border-primary hover:border-primary/50 transition-colors"
+                        min="100"
+                        step="100"
+                      />
                     </div>
-
-                    {/* Generate Button */}
-                    <Button
-                      size="lg"
-                      onClick={handleGenerateBuild}
-                      className="h-12 px-8 bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-all duration-300 neon-glow group"
-                    >
-                      <Search className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
-                      Generate Build
-                    </Button>
                   </div>
+
+                  {/* Generate Button */}
+                  <Button
+                    onClick={handleGenerateBuild}
+                    disabled={isGenerating}
+                    className="w-full h-12 bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-all duration-300 neon-glow disabled:opacity-50 text-base font-semibold"
+                  >
+                    <Search className="w-5 h-5 mr-2" />
+                    {isGenerating ? "Generating Build..." : "Generate Build"}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -304,17 +383,12 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-primary/20 backdrop-blur-sm bg-background/50 py-8 mt-16">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-            <p className="text-sm text-muted-foreground">
-              Powered by <span className="text-primary font-semibold">Base44 AI</span>
-            </p>
-            <a href="/feedback" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              Share Feedback
-            </a>
-          </div>
-          <p className="text-xs text-muted-foreground text-center">
-            Prices are estimates based on current market data. Actual availability may vary.
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-sm text-muted-foreground mb-2">
+            Powered by Base44 AI
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Disclaimer: Recommendations are based on current market data and may vary by region and availability.
           </p>
         </div>
       </footer>

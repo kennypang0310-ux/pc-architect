@@ -5,15 +5,17 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import BuildResults from "./pages/BuildResults";
 import Feedback from "./pages/Feedback";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"\x2F"} component={Home} />
-      <Route path={"\x2Ffeedback"} component={Feedback} />
-      <Route path={"\x2F404"} component={NotFound} />
+      <Route path="/" component={Home} />
+      <Route path="/build-results" component={BuildResults} />
+      <Route path="/feedback" component={Feedback} />
+      <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
