@@ -325,6 +325,60 @@ export default function Home() {
               </p>
             </div>
 
+            {/* Quick Search Bar */}
+            <div className="max-w-2xl mx-auto mb-8">
+              <div 
+                className="relative rounded-lg border border-primary/30 bg-card/50 backdrop-blur-md p-4"
+                style={{
+                  boxShadow: "0 0 30px rgba(0, 217, 255, 0.08), 0 0 60px rgba(255, 0, 170, 0.03)",
+                }}
+              >
+                <div className="flex flex-col md:flex-row gap-3 items-stretch">
+                  {/* Search Input */}
+                  <div className="flex-1 relative">
+                    <Input
+                      type="text"
+                      placeholder="Search PC components, specs, or builds..."
+                      className="w-full bg-background/50 border-primary/30 focus:border-primary text-sm pl-10"
+                    />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  </div>
+
+                  {/* Currency Dropdown */}
+                  <Select value={currency} onValueChange={setCurrency}>
+                    <SelectTrigger 
+                      className="w-full md:w-[140px] bg-background/50 border-primary/30 focus:border-primary hover:border-primary/50 transition-colors text-sm"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {CURRENCIES.map((curr) => (
+                        <SelectItem key={curr.value} value={curr.label}>
+                          {curr.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Region Dropdown */}
+                  <Select value={region} onValueChange={setRegion}>
+                    <SelectTrigger 
+                      className="w-full md:w-[140px] bg-background/50 border-primary/30 focus:border-primary hover:border-primary/50 transition-colors text-sm"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {COUNTRIES.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
             {/* Form Card */}
             <div className="max-w-4xl mx-auto">
               <div 
