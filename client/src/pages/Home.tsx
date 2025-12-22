@@ -40,6 +40,45 @@ const CURRENCIES = [
   { value: "HKD", label: "HKD (HK$)", symbol: "HK$" },
   { value: "NZD", label: "NZD (NZ$)", symbol: "NZ$" },
   { value: "SEK", label: "SEK (kr)", symbol: "kr" },
+  { value: "NOK", label: "NOK (kr)", symbol: "kr" },
+  { value: "DKK", label: "DKK (kr)", symbol: "kr" },
+  { value: "ZAR", label: "ZAR (R)", symbol: "R" },
+  { value: "KRW", label: "KRW (₩)", symbol: "₩" },
+  { value: "TWD", label: "TWD (NT$)", symbol: "NT$" },
+  { value: "THB", label: "THB (฿)", symbol: "฿" },
+  { value: "MYR", label: "MYR (RM)", symbol: "RM" },
+  { value: "PHP", label: "PHP (₱)", symbol: "₱" },
+  { value: "IDR", label: "IDR (Rp)", symbol: "Rp" },
+  { value: "VND", label: "VND (₫)", symbol: "₫" },
+  { value: "PKR", label: "PKR (₨)", symbol: "₨" },
+  { value: "BDT", label: "BDT (৳)", symbol: "৳" },
+  { value: "TRY", label: "TRY (₺)", symbol: "₺" },
+  { value: "RUB", label: "RUB (₽)", symbol: "₽" },
+  { value: "PLN", label: "PLN (zł)", symbol: "zł" },
+  { value: "CZK", label: "CZK (Kč)", symbol: "Kč" },
+  { value: "HUF", label: "HUF (Ft)", symbol: "Ft" },
+  { value: "RON", label: "RON (lei)", symbol: "lei" },
+  { value: "BGN", label: "BGN (лв)", symbol: "лв" },
+  { value: "HRK", label: "HRK (kn)", symbol: "kn" },
+  { value: "RSD", label: "RSD (дин)", symbol: "дин" },
+  { value: "UAH", label: "UAH (₴)", symbol: "₴" },
+  { value: "AED", label: "AED (د.إ)", symbol: "د.إ" },
+  { value: "SAR", label: "SAR (﷼)", symbol: "﷼" },
+  { value: "QAR", label: "QAR (﷼)", symbol: "﷼" },
+  { value: "KWD", label: "KWD (د.ك)", symbol: "د.ك" },
+  { value: "BHD", label: "BHD (د.ب)", symbol: "د.ب" },
+  { value: "OMR", label: "OMR (ر.ع.)", symbol: "ر.ع." },
+  { value: "JOD", label: "JOD (د.ا)", symbol: "د.ا" },
+  { value: "ILS", label: "ILS (₪)", symbol: "₪" },
+  { value: "EGP", label: "EGP (£)", symbol: "£" },
+  { value: "NGN", label: "NGN (₦)", symbol: "₦" },
+  { value: "GHS", label: "GHS (₵)", symbol: "₵" },
+  { value: "KES", label: "KES (Sh)", symbol: "Sh" },
+  { value: "CLP", label: "CLP ($)", symbol: "$" },
+  { value: "ARS", label: "ARS ($)", symbol: "$" },
+  { value: "COP", label: "COP ($)", symbol: "$" },
+  { value: "PEN", label: "PEN (S/)", symbol: "S/" },
+  { value: "UYU", label: "UYU ($U)", symbol: "$U" },
 ];
 
 const COUNTRIES = [
@@ -56,6 +95,19 @@ const COUNTRIES = [
   "Sweden",
   "Norway",
   "Denmark",
+  "Finland",
+  "Poland",
+  "Czech Republic",
+  "Hungary",
+  "Romania",
+  "Bulgaria",
+  "Croatia",
+  "Serbia",
+  "Ukraine",
+  "Greece",
+  "Portugal",
+  "Austria",
+  "Ireland",
   "Japan",
   "South Korea",
   "China",
@@ -68,6 +120,49 @@ const COUNTRIES = [
   "Hong Kong",
   "Taiwan",
   "Thailand",
+  "Malaysia",
+  "Philippines",
+  "Indonesia",
+  "Vietnam",
+  "Pakistan",
+  "Bangladesh",
+  "Turkey",
+  "Russia",
+  "United Arab Emirates",
+  "Saudi Arabia",
+  "Qatar",
+  "Kuwait",
+  "Bahrain",
+  "Oman",
+  "Jordan",
+  "Israel",
+  "Egypt",
+  "Nigeria",
+  "Ghana",
+  "Kenya",
+  "South Africa",
+  "Chile",
+  "Argentina",
+  "Colombia",
+  "Peru",
+  "Uruguay",
+  "Venezuela",
+  "Ecuador",
+  "Guatemala",
+  "Costa Rica",
+  "Panama",
+  "Dominican Republic",
+  "Jamaica",
+  "Trinidad and Tobago",
+  "Iceland",
+  "Luxembourg",
+  "Malta",
+  "Cyprus",
+  "Slovenia",
+  "Slovakia",
+  "Lithuania",
+  "Latvia",
+  "Estonia",
 ];
 
 const USAGE_OPTIONS = [
@@ -267,7 +362,7 @@ export default function Home() {
                         >
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-[300px]">
                           {CURRENCIES.map((curr) => (
                             <SelectItem key={curr.value} value={curr.label}>
                               {curr.label}
@@ -289,7 +384,7 @@ export default function Home() {
                         >
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-[300px]">
                           {COUNTRIES.map((country) => (
                             <SelectItem key={country} value={country}>
                               {country}
