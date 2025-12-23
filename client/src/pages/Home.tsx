@@ -10,19 +10,26 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Cpu, Search } from "lucide-react";
-import { useState } from "react";
+import { Cpu, Search, ChevronsUpDown, Check } from "lucide-react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 const CURRENCIES = [
   { value: "USD", label: "USD ($)", symbol: "$" },
@@ -165,25 +172,23 @@ const COUNTRIES = [
   "Estonia",
 ];
 
-const USAGE_OPTIONS = [
+const USAGE_TYPES = [
   "Gaming (High FPS)",
-  "Gaming (4K Ultra)",
-  "Workstation (Editing/3D)",
+  "Gaming (High Settings)",
+  "Workstation (3D Rendering)",
+  "Workstation (Video Editing)",
   "Office & Productivity",
-  "Streaming & Gaming",
-  "Programming & Dev",
-  "AI/Machine Learning",
-  "Video Production",
-  "Graphic Design",
+  "Streaming Setup",
+  "Programming & Development",
+  "Content Creation",
+  "Data Science & ML",
   "Budget Build",
 ];
 
 export default function Home() {
-  // The userAuth hooks provides authentication state
-  // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
-  let { user, loading, error, isAuthenticated, logout } = useAuth();
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
-
+  
   const [currency, setCurrency] = useState("USD ($)");
   const [region, setRegion] = useState("United States");
   const [usage, setUsage] = useState("Gaming (High FPS)");
@@ -191,26 +196,21 @@ export default function Home() {
   const [budget, setBudget] = useState("2000");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleGenerateBuild = async () => {
+  const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [regionOpen, setRegionOpen] = useState(false);
+  const [usageOpen, setUsageOpen] = useState(false);
+
+  const handleGenerateBuild = () => {
     if (!budget || parseFloat(budget) <= 0) {
       toast.error("Please enter a valid budget");
       return;
     }
 
-    if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
-      return;
-    }
-    
     setIsGenerating(true);
-    toast.loading("Generating your custom PC build...", {
-      description: "Our AI is analyzing the market for the best components",
-    });
-    
-    // Simulate build generation and navigate to results
+    toast.success("Generating your perfect PC build...");
+
     setTimeout(() => {
       setIsGenerating(false);
-      // Store build parameters in session/state for results page
       const buildParams = {
         currency,
         region,
@@ -269,32 +269,35 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-3">
-              {isAuthenticated ? (
+              {user ? (
                 <>
-                  <span className="text-sm text-muted-foreground">{user?.name}</span>
-                  <Button 
-                    variant="ghost" 
+                  <span className="text-sm text-muted-foreground hidden sm:inline">{user.name}</span>
+                  <Button
+                    variant="outline"
                     size="sm"
-                    className="text-muted-foreground hover:text-foreground"
-                    onClick={() => logout()}
+                    onClick={() => {
+                      window.location.href = `${getLoginUrl()}?logout=true`;
+                    }}
                   >
                     Sign Out
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="outline"
                     size="sm"
-                    className="hidden sm:inline-flex text-muted-foreground hover:text-foreground"
-                    onClick={() => window.location.href = getLoginUrl()}
+                    onClick={() => {
+                      window.location.href = getLoginUrl();
+                    }}
                   >
                     Sign In
                   </Button>
-                  <Button 
+                  <Button
                     size="sm"
-                    className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity neon-glow"
-                    onClick={() => window.location.href = getLoginUrl()}
+                    onClick={() => {
+                      window.location.href = getLoginUrl();
+                    }}
                   >
                     Sign Up
                   </Button>
@@ -325,60 +328,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Quick Search Bar */}
-            <div className="max-w-2xl mx-auto mb-8">
-              <div 
-                className="relative rounded-lg border border-primary/30 bg-card/50 backdrop-blur-md p-4"
-                style={{
-                  boxShadow: "0 0 30px rgba(0, 217, 255, 0.08), 0 0 60px rgba(255, 0, 170, 0.03)",
-                }}
-              >
-                <div className="flex flex-col md:flex-row gap-3 items-stretch">
-                  {/* Search Input */}
-                  <div className="flex-1 relative">
-                    <Input
-                      type="text"
-                      placeholder="Search PC components, specs, or builds..."
-                      className="w-full bg-background/50 border-primary/30 focus:border-primary text-sm pl-10"
-                    />
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  </div>
-
-                  {/* Currency Dropdown */}
-                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger 
-                      className="w-full md:w-[140px] bg-background/50 border-primary/30 focus:border-primary hover:border-primary/50 transition-colors text-sm"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px]">
-                      {CURRENCIES.map((curr) => (
-                        <SelectItem key={curr.value} value={curr.label}>
-                          {curr.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {/* Region Dropdown */}
-                  <Select value={region} onValueChange={setRegion}>
-                    <SelectTrigger 
-                      className="w-full md:w-[140px] bg-background/50 border-primary/30 focus:border-primary hover:border-primary/50 transition-colors text-sm"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px]">
-                      {COUNTRIES.map((country) => (
-                        <SelectItem key={country} value={country}>
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
             {/* Form Card */}
             <div className="max-w-4xl mx-auto">
               <div 
@@ -404,112 +353,175 @@ export default function Home() {
 
                   {/* Form Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    {/* Currency */}
+                    {/* Currency Combobox */}
                     <div className="space-y-2">
-                      <Label htmlFor="currency" className="text-sm font-medium">
-                        Currency
-                      </Label>
-                      <Select value={currency} onValueChange={setCurrency}>
-                        <SelectTrigger 
-                          id="currency"
-                          className="bg-background/50 border-primary/30 focus:border-primary hover:border-primary/50 transition-colors"
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          {CURRENCIES.map((curr) => (
-                            <SelectItem key={curr.value} value={curr.label}>
-                              {curr.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="currency" className="text-sm font-medium">Currency</Label>
+                      <Popover open={currencyOpen} onOpenChange={setCurrencyOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={currencyOpen}
+                            className="w-full justify-between bg-background/50 border-primary/30 hover:border-primary/50 text-sm"
+                          >
+                            {currency}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search currency..." />
+                            <CommandEmpty>No currency found.</CommandEmpty>
+                            <CommandList>
+                              <CommandGroup>
+                                {CURRENCIES.map((curr) => (
+                                  <CommandItem
+                                    key={curr.value}
+                                    value={curr.label}
+                                    onSelect={(currentValue) => {
+                                      setCurrency(currentValue === currency ? "" : currentValue);
+                                      setCurrencyOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        currency === curr.label ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {curr.label}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
-                    {/* Region */}
+                    {/* Region Combobox */}
                     <div className="space-y-2">
-                      <Label htmlFor="region" className="text-sm font-medium">
-                        Region / Country
-                      </Label>
-                      <Select value={region} onValueChange={setRegion}>
-                        <SelectTrigger 
-                          id="region"
-                          className="bg-background/50 border-primary/30 focus:border-primary hover:border-primary/50 transition-colors"
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          {COUNTRIES.map((country) => (
-                            <SelectItem key={country} value={country}>
-                              {country}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="region" className="text-sm font-medium">Region / Country</Label>
+                      <Popover open={regionOpen} onOpenChange={setRegionOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={regionOpen}
+                            className="w-full justify-between bg-background/50 border-primary/30 hover:border-primary/50 text-sm"
+                          >
+                            {region}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search region..." />
+                            <CommandEmpty>No region found.</CommandEmpty>
+                            <CommandList>
+                              <CommandGroup>
+                                {COUNTRIES.map((country) => (
+                                  <CommandItem
+                                    key={country}
+                                    value={country}
+                                    onSelect={(currentValue) => {
+                                      setRegion(currentValue === region ? "" : currentValue);
+                                      setRegionOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        region === country ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {country}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
-                    {/* Primary Usage */}
+                    {/* Usage Combobox */}
                     <div className="space-y-2">
-                      <Label htmlFor="usage" className="text-sm font-medium">
-                        Primary Usage
-                      </Label>
-                      <Select value={usage} onValueChange={setUsage}>
-                        <SelectTrigger 
-                          id="usage"
-                          className="bg-background/50 border-primary/30 focus:border-primary hover:border-primary/50 transition-colors"
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {USAGE_OPTIONS.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="usage" className="text-sm font-medium">Primary Usage</Label>
+                      <Popover open={usageOpen} onOpenChange={setUsageOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={usageOpen}
+                            className="w-full justify-between bg-background/50 border-primary/30 hover:border-primary/50 text-sm"
+                          >
+                            {usage}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search usage..." />
+                            <CommandEmpty>No usage found.</CommandEmpty>
+                            <CommandList>
+                              <CommandGroup>
+                                {USAGE_TYPES.map((type) => (
+                                  <CommandItem
+                                    key={type}
+                                    value={type}
+                                    onSelect={(currentValue) => {
+                                      setUsage(currentValue === usage ? "" : currentValue);
+                                      setUsageOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        usage === type ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {type}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
 
                   {/* Peripherals Checkbox */}
-                  <div className="flex items-start space-x-3 mb-6 p-4 rounded-lg bg-background/30 border border-primary/20">
+                  <div className="flex items-center gap-3 mb-6 p-4 rounded-lg border border-primary/20 bg-primary/5">
                     <Checkbox
                       id="peripherals"
                       checked={includePeripherals}
-                      onCheckedChange={(checked) => setIncludePeripherals(checked === true)}
-                      className="mt-1"
+                      onCheckedChange={(checked) => setIncludePeripherals(checked as boolean)}
                     />
-                    <div>
-                      <label 
-                        htmlFor="peripherals" 
-                        className="text-sm font-medium cursor-pointer"
-                      >
-                        Include Peripherals (Monitor, Keyboard, Mouse, Headset) in budget
-                      </label>
+                    <label
+                      htmlFor="peripherals"
+                      className="text-sm font-medium cursor-pointer flex-1"
+                    >
+                      Include Peripherals (Monitor, Keyboard, Mouse, Headset) in budget
                       <p className="text-xs text-muted-foreground mt-1">
                         If unchecked, budget is for PC components only
                       </p>
-                    </div>
+                    </label>
                   </div>
 
                   {/* Budget Input */}
                   <div className="space-y-2 mb-8">
-                    <Label htmlFor="budget" className="text-sm font-medium">
-                      Total Budget
-                    </Label>
+                    <Label htmlFor="budget" className="text-sm font-medium">Total Budget</Label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        {CURRENCIES.find(c => c.label === currency)?.symbol || "$"}
-                      </span>
+                      <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
                       <Input
                         id="budget"
                         type="number"
                         placeholder="2000"
                         value={budget}
                         onChange={(e) => setBudget(e.target.value)}
-                        className="pl-8 bg-background/50 border-primary/30 focus:border-primary hover:border-primary/50 transition-colors"
-                        min="100"
-                        step="100"
+                        className="pl-8 bg-background/50 border-primary/30 focus:border-primary"
                       />
                     </div>
                   </div>
@@ -518,29 +530,37 @@ export default function Home() {
                   <Button
                     onClick={handleGenerateBuild}
                     disabled={isGenerating}
-                    className="w-full h-12 bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-all duration-300 neon-glow disabled:opacity-50 text-base font-semibold"
+                    className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-background font-semibold py-6 rounded-lg neon-glow transition-all duration-300"
                   >
-                    <Search className="w-5 h-5 mr-2" />
-                    {isGenerating ? "Generating Build..." : "Generate Build"}
+                    <Search className="w-4 h-4 mr-2" />
+                    {isGenerating ? "Generating..." : "Generate Build"}
                   </Button>
                 </div>
               </div>
             </div>
           </div>
         </section>
-      </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-primary/20 backdrop-blur-sm bg-background/50 py-8 mt-16">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-sm text-muted-foreground mb-2">
-            Powered by Base44 AI
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Disclaimer: Recommendations are based on current market data and may vary by region and availability.
-          </p>
-        </div>
-      </footer>
+        {/* Footer */}
+        <footer className="relative z-10 border-t border-primary/20 backdrop-blur-sm bg-background/30 mt-16">
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground">
+                Powered by <span className="text-primary font-semibold">Base44 AI</span>
+              </p>
+              <p className="text-xs text-muted-foreground text-center md:text-right">
+                Prices and availability subject to change. All recommendations are estimates based on current market data.
+              </p>
+              <a 
+                href="/feedback" 
+                className="text-sm text-primary hover:text-secondary transition-colors font-medium"
+              >
+                Share Feedback
+              </a>
+            </div>
+          </div>
+        </footer>
+      </main>
     </div>
   );
 }
