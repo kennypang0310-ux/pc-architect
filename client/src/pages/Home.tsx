@@ -190,6 +190,7 @@ export default function Home() {
   const [, setLocation] = useLocation();
   
   const [currency, setCurrency] = useState("USD ($)");
+  const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0]);
   const [region, setRegion] = useState("United States");
   const [usage, setUsage] = useState("Gaming (High FPS)");
   const [includePeripherals, setIncludePeripherals] = useState(false);
@@ -380,6 +381,8 @@ export default function Home() {
                                     value={curr.label}
                                     onSelect={(currentValue) => {
                                       setCurrency(currentValue === currency ? "" : currentValue);
+                                      const curr = CURRENCIES.find((c) => c.label === currentValue) || CURRENCIES[0];
+                                      setSelectedCurrency(curr);
                                       setCurrencyOpen(false);
                                     }}
                                   >
@@ -514,14 +517,16 @@ export default function Home() {
                   <div className="space-y-2 mb-8">
                     <Label htmlFor="budget" className="text-sm font-medium">Total Budget</Label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                        {selectedCurrency.symbol}
+                      </span>
                       <Input
                         id="budget"
                         type="number"
                         placeholder="2000"
                         value={budget}
                         onChange={(e) => setBudget(e.target.value)}
-                        className="pl-8 bg-background/50 border-primary/30 focus:border-primary"
+                        className="pl-12 bg-background/50 border-primary/30 focus:border-primary"
                       />
                     </div>
                   </div>

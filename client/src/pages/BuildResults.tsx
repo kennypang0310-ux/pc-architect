@@ -771,14 +771,14 @@ export default function BuildResults() {
                             {currencySymbol}
                             {component.price}
                           </p>
-                          <p className="text-lg font-bold text-primary neon-glow">
+                          <p className="text-lg font-bold text-primary">
                             {currencySymbol}
                             {component.scrapedPrice}
                           </p>
                           <p className="text-xs text-primary/70">via {component.scrapedFrom}</p>
                         </>
                       ) : (
-                        <p className="text-lg font-bold text-primary neon-glow">
+                        <p className="text-lg font-bold text-primary">
                           {currencySymbol}
                           {component.price}
                         </p>
