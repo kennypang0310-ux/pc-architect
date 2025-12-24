@@ -658,7 +658,7 @@ export default function BuildResults() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Builder
             </Button>
-            <h1 className="text-2xl font-bold text-primary neon-glow">Your PC Build</h1>
+            <h1 className="text-2xl font-bold text-primary">Your PC Build</h1>
             <div className="w-20" />
           </div>
         </div>
@@ -715,7 +715,7 @@ export default function BuildResults() {
             <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
               <div className="flex justify-between items-center">
                 <span className="font-semibold">Total Budget:</span>
-                <span className="text-2xl font-bold text-primary neon-glow">
+                <span className="text-2xl font-bold text-primary">
                   {currencySymbol}
                   {buildResult.totalPrice.toLocaleString()}
                 </span>
