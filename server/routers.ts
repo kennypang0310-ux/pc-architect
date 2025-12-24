@@ -5,6 +5,7 @@ import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { createFeedback, getAllFeedbacks, getFeedbacksByUserId, updateFeedbackAnalysis, addFeedbackReaction, removeFeedbackReaction, getFeedbackReactionCounts, getUserReaction } from "./db";
 import { invokeLLM } from "./_core/llm";
+import { healthCheck, listRobots, getPriceFromRetailers } from "./services/browseAi";
 
 async function analyzeFeedbackWithAI(feedbackId: number, message: string, category: string) {
   try {
@@ -160,6 +161,49 @@ export const appRouter = router({
       .input(z.object({ feedbackId: z.number().int() }))
       .query(async ({ ctx, input }) => {
         return await getUserReaction(input.feedbackId, ctx.user.id);
+      }),
+  }),
+
+  prices: router({
+    checkBrowseAiConnection: publicProcedure.query(async () => {
+      try {
+        const isHealthy = await healthCheck();
+        return { connected: isHealthy, status: isHealthy ? "Connected" : "Disconnected" };
+      } catch (error) {
+        return { connected: false, status: "Error", error: String(error) };
+      }
+    }),
+
+    listAvailableRobots: publicProcedure.query(async () => {
+      try {
+        const robots = await listRobots();
+        return { robots, count: robots.length };
+      } catch (error) {
+        return { robots: [], count: 0, error: String(error) };
+      }
+    }),
+
+    scrapeComponentPrices: publicProcedure
+      .input(
+        z.object({
+          componentType: z.string(),
+          componentName: z.string(),
+          region: z.string(),
+          retailers: z.record(z.string(), z.string()), // Map of retailer name to robot ID
+        })
+      )
+      .query(async ({ input }) => {
+        try {
+          const prices = await getPriceFromRetailers(
+            input.componentType,
+            input.componentName,
+            input.region,
+            input.retailers as Record<string, string>
+          );
+          return { prices, success: true };
+        } catch (error) {
+          return { prices: [], success: false, error: String(error) };
+        }
       }),
   }),
 });

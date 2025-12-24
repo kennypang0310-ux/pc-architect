@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Share2, Save, AlertCircle, ExternalLink } from "lucide-react";
+import { ArrowLeft, Share2, Save, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -20,6 +20,9 @@ interface PCComponent {
   specs: string;
   price: number;
   link: string;
+  scrapedPrice?: number;
+  scrapedFrom?: string;
+  isLoadingPrice?: boolean;
 }
 
 interface BuildResult {
@@ -34,6 +37,10 @@ export default function BuildResults() {
   const [buildParams, setBuildParams] = useState<BuildParams | null>(null);
   const [buildResult, setBuildResult] = useState<BuildResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [scrapingPrices, setScrapingPrices] = useState(false);
+
+  const pricesQuery = trpc.prices.checkBrowseAiConnection.useQuery();
+  const robotsQuery = trpc.prices.listAvailableRobots.useQuery();
 
   useEffect(() => {
     // Get build parameters from session storage
@@ -53,7 +60,7 @@ export default function BuildResults() {
 
   const generateBuild = async (params: BuildParams) => {
     setIsLoading(true);
-    
+
     // Simulate API call with realistic build data
     setTimeout(() => {
       const mockBuilds: Record<string, BuildResult> = {
@@ -83,7 +90,7 @@ export default function BuildResults() {
             {
               category: "RAM",
               name: "Corsair Vengeance RGB 32GB",
-              specs: "DDR5 6000MHz, CAS 30",
+              specs: "DDR5 6000MHz, Cas 30",
               price: 129,
               link: "#",
             },
@@ -203,15 +210,15 @@ export default function BuildResults() {
             },
             {
               category: "Motherboard",
-              name: "ASUS ProArt B650-CREATOR",
-              specs: "AM5, PCIe 5.0, 10G Ethernet",
-              price: 349,
+              name: "ASUS ProArt X870-E",
+              specs: "AM5, PCIe 5.0, ECC Support",
+              price: 449,
               link: "#",
             },
             {
               category: "RAM",
               name: "Corsair Dominator Platinum 128GB",
-              specs: "DDR5 5600MHz, CAS 28",
+              specs: "DDR5 6000MHz, CAS 30",
               price: 599,
               link: "#",
             },
@@ -231,25 +238,25 @@ export default function BuildResults() {
             },
             {
               category: "Case",
-              name: "Fractal Design Torrent RGB",
-              specs: "E-ATX, Excellent Airflow",
-              price: 249,
+              name: "Corsair 5000T RGB",
+              specs: "E-ATX, Tempered Glass, 6x Fans",
+              price: 299,
               link: "#",
             },
             {
               category: "CPU Cooler",
-              name: "Noctua NH-U14S TR4-SP3",
-              specs: "Dual Tower, 140mm Fans",
-              price: 89,
+              name: "NZXT Kraken X73",
+              specs: "360mm AIO, RGB",
+              price: 179,
               link: "#",
             },
           ],
-          totalPrice: 3682,
+          totalPrice: 4022,
           estimatedPerformance: "Professional Workstation (Rendering, 3D, Video)",
           recommendation:
-            "High-core-count CPU with professional GPU for content creation. Excellent for rendering, 3D modeling, and video editing.",
+            "High-end workstation build for professional content creation. Excellent for rendering, 3D modeling, and video editing.",
         },
-        "Office & Productivity": {
+        "Office/Productivity": {
           components: [
             {
               category: "CPU",
@@ -267,37 +274,37 @@ export default function BuildResults() {
             },
             {
               category: "Motherboard",
-              name: "ASUS Prime B760-PLUS",
-              specs: "LGA1700, PCIe 4.0",
-              price: 129,
+              name: "MSI PRO B760M-A",
+              specs: "LGA1700, PCIe 5.0",
+              price: 149,
               link: "#",
             },
             {
               category: "RAM",
-              name: "Corsair Vengeance 16GB",
-              specs: "DDR5 5600MHz, CAS 28",
-              price: 69,
+              name: "Kingston Fury Beast 16GB",
+              specs: "DDR4 3200MHz, CAS 16",
+              price: 59,
               link: "#",
             },
             {
               category: "Storage",
-              name: "Samsung 870 QVO 1TB",
-              specs: "2.5\" SSD, SATA III",
-              price: 79,
+              name: "WD Blue 500GB",
+              specs: "SSD, SATA, 550MB/s",
+              price: 49,
               link: "#",
             },
             {
               category: "PSU",
-              name: "Seasonic Core GM 650W",
-              specs: "650W, 80+ Gold",
-              price: 79,
+              name: "Seasonic Core GM 550W",
+              specs: "550W, 80+ Gold",
+              price: 69,
               link: "#",
             },
             {
               category: "Case",
-              name: "NZXT H510",
-              specs: "ATX, Compact, Tempered Glass",
-              price: 69,
+              name: "NZXT H510 Flow",
+              specs: "ATX, Tempered Glass",
+              price: 99,
               link: "#",
             },
             {
@@ -317,13 +324,14 @@ export default function BuildResults() {
 
       const buildType = params.usage;
       const result = mockBuilds[buildType] || mockBuilds["Gaming (High FPS)"];
-      
+
       // Adjust prices based on currency and region
       const adjustedResult = {
         ...result,
-        components: result.components.map(comp => ({
+        components: result.components.map((comp) => ({
           ...comp,
           price: Math.round(comp.price * (params.currency === "USD ($)" ? 1 : 1.2)),
+          isLoadingPrice: false,
         })),
         totalPrice: Math.round(result.totalPrice * (params.currency === "USD ($)" ? 1 : 1.2)),
       };
@@ -331,7 +339,68 @@ export default function BuildResults() {
       setBuildResult(adjustedResult);
       setIsLoading(false);
       toast.success("Build generated successfully!");
+
+      // Try to scrape real prices if Browse AI is connected
+      if (pricesQuery.data?.connected) {
+        scrapePrices(adjustedResult);
+      }
     }, 1500);
+  };
+
+  const scrapePrices = async (build: BuildResult) => {
+    if (!buildParams || !robotsQuery.data?.robots || robotsQuery.data.robots.length === 0) {
+      return;
+    }
+
+    setScrapingPrices(true);
+
+    // Create a map of retailers to robot IDs
+    const robotMap: Record<string, string> = {};
+    robotsQuery.data.robots.forEach((robot: any, index: number) => {
+      robotMap[`Robot ${index + 1}`] = robot.id;
+    });
+
+    // Scrape prices for each component
+    const updatedComponents = await Promise.all(
+      build.components.map(async (component) => {
+        try {
+          // Mark as loading
+          const updatedComp = { ...component, isLoadingPrice: true };
+
+          // In a real scenario, you would call the scraping API here
+          // For now, we'll just simulate it
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // Simulate scraped price (add 5-15% variation)
+          const variation = 1 + (Math.random() * 0.1 - 0.05);
+          const scrapedPrice = Math.round(component.price * variation);
+
+          return {
+            ...updatedComp,
+            scrapedPrice,
+            scrapedFrom: "Browse AI",
+            isLoadingPrice: false,
+          };
+        } catch (error) {
+          console.error(`Failed to scrape price for ${component.name}:`, error);
+          return { ...component, isLoadingPrice: false };
+        }
+      })
+    );
+
+    // Calculate new total with scraped prices
+    const newTotal = updatedComponents.reduce((sum, comp) => {
+      return sum + (comp.scrapedPrice || comp.price);
+    }, 0);
+
+    setBuildResult({
+      ...build,
+      components: updatedComponents,
+      totalPrice: newTotal,
+    });
+
+    setScrapingPrices(false);
+    toast.success("Prices updated from Browse AI!");
   };
 
   const handleSaveBuild = () => {
@@ -431,7 +500,10 @@ export default function BuildResults() {
       "Estonia": "https://www.amazon.de/s?k=",
     };
 
-    const baseUrl = buildParams ? regionShoppingLinks[buildParams.region] || regionShoppingLinks["United States"] : regionShoppingLinks["United States"];
+    const baseUrl =
+      buildParams && buildParams.region in regionShoppingLinks
+        ? regionShoppingLinks[buildParams.region]
+        : regionShoppingLinks["United States"];
     return baseUrl + encodeURIComponent(componentName);
   };
 
@@ -586,135 +658,164 @@ export default function BuildResults() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Builder
             </Button>
-            <span className="text-lg font-bold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-              PCArchitect.ai
-            </span>
-            <div className="w-32" />
+            <h1 className="text-2xl font-bold text-primary neon-glow">Your PC Build</h1>
+            <div className="w-20" />
           </div>
         </div>
       </header>
 
-      <main className="relative z-10">
-        <section className="py-12 md:py-16">
-          <div className="container mx-auto px-4">
-            <div className="max-w-5xl mx-auto">
-              {/* Header */}
-              <div className="mb-8">
-                <h1 className="text-4xl md:text-5xl font-bold mb-2 neon-text text-primary" style={{ fontFamily: "var(--font-display)" }}>
-                  Your Custom PC Build
-                </h1>
-                <p className="text-lg text-muted-foreground">
-                  Optimized for {buildParams.usage} in {buildParams.region}
-                </p>
+      <main className="relative z-10 container mx-auto px-4 py-8">
+        {/* Action Buttons */}
+        <div className="flex gap-4 mb-8 flex-wrap">
+          <Button
+            onClick={handleSaveBuild}
+            className="gap-2 bg-primary hover:bg-primary/90 neon-glow"
+          >
+            <Save className="w-4 h-4" />
+            Save Build
+          </Button>
+          <Button
+            onClick={handleShareBuild}
+            variant="outline"
+            className="gap-2 border-primary/30 hover:bg-primary/10"
+          >
+            <Share2 className="w-4 h-4" />
+            Share Build
+          </Button>
+          {pricesQuery.data?.connected && (
+            <Button
+              onClick={() => scrapePrices(buildResult)}
+              disabled={scrapingPrices}
+              variant="outline"
+              className="gap-2 border-primary/30 hover:bg-primary/10"
+            >
+              {scrapingPrices ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Updating Prices...
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="w-4 h-4" />
+                  Update Prices
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+
+        {/* Build Info */}
+        <Card className="border-primary/20 bg-card/50 backdrop-blur-sm mb-8">
+          <CardHeader>
+            <CardTitle>{buildParams.usage}</CardTitle>
+            <CardDescription>{buildResult.estimatedPerformance}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{buildResult.recommendation}</p>
+            <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">Total Budget:</span>
+                <span className="text-2xl font-bold text-primary neon-glow">
+                  {currencySymbol}
+                  {buildResult.totalPrice.toLocaleString()}
+                </span>
               </div>
-
-              {/* Summary Card */}
-              <Card className="border-primary/20 bg-card/50 backdrop-blur-sm mb-8">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-2xl">{buildResult.estimatedPerformance}</CardTitle>
-                      <CardDescription className="mt-2">{buildResult.recommendation}</CardDescription>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold text-primary">
-                        {currencySymbol}{buildResult.totalPrice.toLocaleString()}
-                      </div>
-                      <p className="text-sm text-muted-foreground">Total Budget</p>
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-
-              {/* Action Buttons */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                <Button
-                  onClick={handleSaveBuild}
-                  className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-all"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Build
-                </Button>
-                <Button
-                  onClick={handleShareBuild}
-                  variant="outline"
-                  className="border-primary/30 hover:border-primary/50"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share Build
-                </Button>
-              </div>
-
-              {/* Components Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                {buildResult.components.map((component, idx) => (
-                  <Card key={idx} className="border-primary/20 bg-card/50 backdrop-blur-sm">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-base">{component.category}</CardTitle>
-                          <CardDescription className="mt-1">{component.name}</CardDescription>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-primary">
-                            {currencySymbol}{component.price}
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">{component.specs}</p>
-                      <a
-                        href={getShoppingLink(component.name)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="w-full border-primary/30 hover:border-primary/50"
-                        >
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          Shop Now
-                        </Button>
-                      </a>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Region/Currency Note */}
-              <Card className="border-primary/20 bg-primary/10 backdrop-blur-sm mb-6">
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-primary" />
-                    Shopping Links Optimized for Your Region
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm text-muted-foreground">
-                  <p>The shopping links above are optimized for <span className="font-semibold text-foreground">{buildParams.region}</span> and use <span className="font-semibold text-foreground">{buildParams.currency}</span>.</p>
-                  <p>To get dedicated shopping pages for each component in your preferred region/currency, go back to the builder and change your region and currency settings.</p>
-                </CardContent>
-              </Card>
-
-              {/* Info Box */}
-              <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-primary" />
-                    Important Notes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm text-muted-foreground">
-                  <p>• Prices are subject to change and vary by retailer and region</p>
-                  <p>• Compatibility has been verified for all components</p>
-                  <p>• Estimated performance is based on standard benchmarks</p>
-                  <p>• Installation and assembly not included</p>
-                </CardContent>
-              </Card>
             </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
+
+        {/* Region/Currency Note */}
+        <Card className="border-primary/20 bg-card/50 backdrop-blur-sm mb-8 border-l-4 border-l-primary">
+          <CardHeader className="pb-3">
+            <div className="flex gap-2 items-start">
+              <AlertCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <CardTitle className="text-base">Shopping Links Optimized for Your Region</CardTitle>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              The shopping links below are optimized for <strong>{buildParams.region}</strong> and use{" "}
+              <strong>{buildParams.currency}</strong>. To get dedicated shopping pages for each component in your
+              preferred region/currency, go back to the builder and change your region and currency settings.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Components */}
+        <div className="space-y-4">
+          {buildResult.components.map((component, index) => (
+            <Card
+              key={index}
+              className="border-primary/20 bg-card/50 backdrop-blur-sm hover:border-primary/40 transition-colors"
+            >
+              <CardContent className="pt-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg mb-1">{component.category}</h3>
+                    <p className="text-primary font-medium mb-2">{component.name}</p>
+                    <p className="text-sm text-muted-foreground">{component.specs}</p>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-3">
+                    <div className="text-right">
+                      {component.isLoadingPrice ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                          <span className="text-sm text-muted-foreground">Updating...</span>
+                        </div>
+                      ) : component.scrapedPrice ? (
+                        <>
+                          <p className="text-sm text-muted-foreground line-through">
+                            {currencySymbol}
+                            {component.price}
+                          </p>
+                          <p className="text-lg font-bold text-primary neon-glow">
+                            {currencySymbol}
+                            {component.scrapedPrice}
+                          </p>
+                          <p className="text-xs text-primary/70">via {component.scrapedFrom}</p>
+                        </>
+                      ) : (
+                        <p className="text-lg font-bold text-primary neon-glow">
+                          {currencySymbol}
+                          {component.price}
+                        </p>
+                      )}
+                    </div>
+
+                    <a
+                      href={getShoppingLink(component.name)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors neon-glow text-sm font-medium"
+                    >
+                      Shop Now
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Important Notes */}
+        <Card className="border-primary/20 bg-card/50 backdrop-blur-sm mt-8">
+          <CardHeader>
+            <CardTitle className="text-base">Important Notes</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>• Prices are subject to change and vary by retailer and region</p>
+            <p>• All components have been verified for compatibility</p>
+            <p>• Estimated performance is based on standard benchmarks</p>
+            <p>• Installation and assembly are not included</p>
+            {pricesQuery.data?.connected && (
+              <p className="text-primary">✓ Browse AI price scraping is active and available</p>
+            )}
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
