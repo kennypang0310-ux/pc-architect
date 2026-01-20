@@ -6,6 +6,8 @@ import { z } from "zod";
 import { createFeedback, getAllFeedbacks, getFeedbacksByUserId, updateFeedbackAnalysis, addFeedbackReaction, removeFeedbackReaction, getFeedbackReactionCounts, getUserReaction } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { healthCheck, listRobots, getPriceFromRetailers } from "./services/browseAi";
+import { checkCompatibility } from "./services/compatibility";
+import { autoRegenerateComponents } from "./services/autoRegeneration";
 
 async function analyzeFeedbackWithAI(feedbackId: number, message: string, category: string) {
   try {
@@ -49,17 +51,11 @@ async function analyzeFeedbackWithAI(feedbackId: number, message: string, catego
     const content = response.choices[0]?.message.content;
     if (!content) throw new Error("No response from LLM");
 
-    const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+    const contentStr = typeof content === "string" ? content : JSON.stringify(content);
     const analysis = JSON.parse(contentStr);
-    
-    await updateFeedbackAnalysis(feedbackId, {
-      frequency: Math.max(0, Math.min(1, analysis.frequency)),
-      feasibility: Math.max(0, Math.min(1, analysis.feasibility)),
-      impact: Math.max(0, Math.min(1, analysis.impact)),
-      aiAnalysis: analysis,
-    });
+    await updateFeedbackAnalysis(feedbackId, analysis);
   } catch (error) {
-    console.error("[AI Analysis] Failed to analyze feedback:", error);
+    console.error("[AI Analysis] Error analyzing feedback:", error);
   }
 }
 
@@ -189,7 +185,7 @@ export const appRouter = router({
           componentType: z.string(),
           componentName: z.string(),
           region: z.string(),
-          retailers: z.record(z.string(), z.string()), // Map of retailer name to robot ID
+          retailers: z.record(z.string(), z.string()),
         })
       )
       .query(async ({ input }) => {
@@ -203,6 +199,66 @@ export const appRouter = router({
           return { prices, success: true };
         } catch (error) {
           return { prices: [], success: false, error: String(error) };
+        }
+      }),
+  }),
+
+  compatibility: router({
+    check: publicProcedure
+      .input(
+        z.object({
+          components: z.array(
+            z.object({
+              category: z.string(),
+              name: z.string(),
+              specs: z.string(),
+            })
+          ),
+        })
+      )
+      .query(({ input }) => {
+        try {
+          const result = checkCompatibility(input.components);
+          return result;
+        } catch (error) {
+          return {
+            isCompatible: false,
+            issues: [],
+            warnings: [],
+            infos: [],
+            success: false,
+            error: String(error),
+          };
+        }
+      }),
+
+    autoRegenerate: publicProcedure
+      .input(
+        z.object({
+          components: z.array(
+            z.object({
+              category: z.string(),
+              name: z.string(),
+              specs: z.string(),
+            })
+          ),
+        })
+      )
+      .query(({ input }) => {
+        try {
+          const result = autoRegenerateComponents(input.components);
+          return { ...result, success: true };
+        } catch (error) {
+          return {
+            components: [],
+            regeneratedComponents: [],
+            issues: [],
+            warnings: [],
+            isFullyCompatible: false,
+            regenerationAttempts: 0,
+            success: false,
+            error: String(error),
+          };
         }
       }),
   }),
